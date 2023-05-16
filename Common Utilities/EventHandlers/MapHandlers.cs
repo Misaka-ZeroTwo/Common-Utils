@@ -66,7 +66,7 @@ namespace Common_Utilities.EventHandlers
         {
             if (_plugin.Config.Scp914ClassChanges != null && _plugin.Config.Scp914ClassChanges.ContainsKey(ev.KnobSetting))
             {
-                foreach ((RoleTypeId sourceRole, RoleTypeId destinationRole, double chance, bool keepInventory) in _plugin.Config.Scp914ClassChanges[ev.KnobSetting])
+                foreach ((RoleTypeId sourceRole, RoleTypeId destinationRole, double chance, RoleSpawnFlags spawnFlags) in _plugin.Config.Scp914ClassChanges[ev.KnobSetting])
                 {
                     if (sourceRole != ev.Player.Role)
                         continue;
@@ -75,12 +75,8 @@ namespace Common_Utilities.EventHandlers
                     Log.Debug($"{nameof(OnScp914UpgradingPlayer)}: {ev.Player.Nickname} ({ev.Player.Role})is trying to upgrade his class. {sourceRole} -> {destinationRole} ({chance}). Should be processed: {r <= chance} ({r})");
                     if (r <= chance)
                     {
-                        ev.Player.Role.Set(destinationRole, SpawnReason.Respawn, RoleSpawnFlags.None);
-                        if (!keepInventory)
-                        {
-                            ev.Player.ClearInventory();
-                            ev.Player.Ammo.Clear();
-                        }
+                        ev.Player.Role.Set(destinationRole, SpawnReason.Respawn, spawnFlags);
+
                         ev.Player.Position = ev.OutputPosition;
                         break;
                     }
@@ -125,23 +121,17 @@ namespace Common_Utilities.EventHandlers
                         }
                         else
                         {
-                            foreach (Room room in Room.List)
-                                if (room.Type == roomType)
-                                {
-                                    ev.OutputPosition = (room.Position + (Vector3.up * 1.5f)) + offset;
-                                    if (damage > 0f)
-                                    {
-                                        float amount = ev.Player.MaxHealth * damage;
-                                        if (damage > 1f)
-                                            amount = damage;
+                            ev.OutputPosition = Room.Get(roomType).Position + (Vector3.up * 1.5f) + offset;
+                            if (damage > 0f)
+                            {
+                                float amount = ev.Player.MaxHealth * damage;
+                                if (damage > 1f)
+                                    amount = damage;
 
-                                        Log.Debug(
-                                            $"{nameof(OnScp914UpgradingPlayer)}: {ev.Player.Nickname} is being damaged for {amount}. -- {ev.Player.Health} * {damage}");
-                                        ev.Player.Hurt(amount, "SCP-914 Teleport", "SCP-914");
-                                    }
-
-                                    break;
-                                }
+                                Log.Debug(
+                                    $"{nameof(OnScp914UpgradingPlayer)}: {ev.Player.Nickname} is being damaged for {amount}. -- {ev.Player.Health} * {damage}");
+                                ev.Player.Hurt(amount, "SCP-914 Teleport", "SCP-914");
+                            }
                         }
 
                         break;
